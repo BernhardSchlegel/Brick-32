@@ -84,6 +84,11 @@ uint32_t main_interval_ms = 1000; // 1s default intervall for first iteration
 String sensor_id = "";
 float celsius, fahrenheit;
 
+// core syncs
+// button is polled on CPU1, wm manager is on CPU0
+bool show_config_portal_due = false;
+bool reset_config_due = false;
+
 void writeStringToEEPROM(int addrOffset, const String &strToWrite)
 {
   byte len = strToWrite.length();
@@ -122,8 +127,6 @@ String readStringFromEEPROM(int addrOffset)
 void resetConfig()
 {
   Serial.println("Erasing Config, restarting");
-  led_onoff.Blink(70, 200).Repeat(11); // 11 will display as 10 (first turnoff)
-  wm.disconnect();
   wm.resetSettings();
   ESP.restart();
 }
@@ -131,13 +134,15 @@ void resetConfig()
 void showConfigPortal()
 {
   Serial.println("opening config portal");
-  led_onoff.Blink(70, 200).Repeat(4); // 4 will display as 3
   delay(500);
 
   // start portal w delay
   Serial.println("setting timeout");
   wm.setConfigPortalTimeout(120);
   delay(500);
+
+  Serial.println("disconnecting...");
+  wm.disconnect();
 
   Serial.println("serving acces point...");
   if (!wm.startConfigPortal(ssid.c_str()))
@@ -243,7 +248,11 @@ void handler_main(Button2 &btn)
   {
   case double_click:
     Serial.println("double ");
-    //showConfigPortal(); triggers panic
+
+    led_onoff.Blink(70, 200).Repeat(4); // 4 will display as 3
+    show_config_portal_due = true;
+    
+    // triggers panic
     /* 
     *wm:Guru Meditation Error: Core  1 panic'ed (Unhandled debug exception). 
 Debug exception reason: Stack canary watchpoint triggered (CPU_1) 
@@ -262,6 +271,8 @@ Backtrace:0x4016441d:0x3ffb8eb00x40163b41:0x3ffb91c0 0x400e92cd:0x3ffb9280 0x400
   case long_click:
   case empty: // TODO: Debug... for some strange reason long click gives 4=empty
     Serial.println("Button Held");
+    led_onoff.Blink(70, 200).Repeat(11); // 11 will display as 10 (first turnoff)
+    reset_config_due = true;
 
     // resetConfig(); // triggers panic
     break;
@@ -311,7 +322,16 @@ void saveParamCallback()
 String getFlashChipId()
 {
   // TODO: Replace with ESP.getFlashChipId()
-  return "TODO";
+  char ssid[24];
+  uint64_t chipid = ESP.getEfuseMac();
+  uint16_t chip = (uint16_t)(chipid >> 32);
+
+  // yields i.e. "AC1A-BC842178" for 78:21:84:BC:1A:AC
+  // snprintf(ssid, 24, "%04X-%08X", chip, (uint32_t)chipid);
+  // yields i.e. 
+  snprintf(ssid, 24, "%08D", chip);
+
+  return String(ssid);
 }
 
 void CoreTask1(void *parameter)
@@ -547,6 +567,14 @@ void contactBackend()
 
 void loop()
 {
+  if (show_config_portal_due) {
+    show_config_portal_due = false;
+    showConfigPortal();
+  }
+  if (reset_config_due) {
+    reset_config_due = false;
+    resetConfig();
+  }
   static uint32_t state_main_interval = 0;
   if (TimeReached(state_main_interval))
   {

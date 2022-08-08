@@ -2,11 +2,10 @@
 
 ### Getting started
 
-Simply power up your BierBot Brick-32 and use any WiFi enabled device (Android, iPhone, Tablet, Mac, or PC) to scan for a Brick2-Wifi (i.e. `Brick-32-42123`) to configure your Brick.
+Simply power up your BierBot Brick-32 and use any WiFi enabled device (Android, iPhone, Tablet, Mac, or PC) to scan for a Brick2-Wifi (i.e. `Brick-32-0042123`) to configure your Brick.
 
 ### TODOs
 
-- [ ] get chip ID similar to `ESP.getFlashChipId()`
 - [ ] cleanup code
 
 ### Hardware
