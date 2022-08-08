@@ -2,7 +2,7 @@
 
 ### Getting started
 
-Simply power up your BierBot Brick-32 and use any WiFi enabled device (Android, iPhone, Tablet, Mac, or PC) to scan for a Brick2-Wifi (i.e. `Brick-32-0042123`) to configure your Brick.
+Simply power up your BierBot Brick-32 and use any WiFi enabled device (Android, iPhone, Tablet, Mac, or PC) to scan for a Brick-32-Wifi (i.e. `Brick-32-0042123`) to configure your Brick.
 
 ### TODOs
 
@@ -32,7 +32,7 @@ The following Buttons are available
   - Double Press: bring up WiFi configuration portal
   - Long Press (more than 3s) factory reset.
 
-The following LEDs are available to tell you which state your Brick 2 is in:
+The following LEDs are available to tell you which state your Brick-32 is in:
 
 - Power-LED (red): On as soon the Brick is supplied with power and done with booting. This LED will confirm launching config portal with 3 Flashes and a Factory Reset with 10 flashes.
 - WiFi-LED (blue): On if WiFi connection was established.
