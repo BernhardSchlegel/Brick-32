@@ -1,3 +1,4 @@
+![Bricks](./docs/logo.png)
 # BierBot Brick ESP32
 
 ![Bricks](./docs/build_s.jpg)
