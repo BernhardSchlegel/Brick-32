@@ -1,24 +1,34 @@
+![Bricks](./docs/logo.png)
+# BierBot Brick ESP32
+
+![Bricks](./docs/build_s.jpg)
+
 ## Manual
-
-### Getting started
-
-Simply power up your BierBot Brick-32 and use any WiFi enabled device (Android, iPhone, Tablet, Mac, or PC) to scan for a Brick-32-Wifi (i.e. `Brick-32-0042123`) to configure your Brick.
 
 ### TODOs
 
 - [ ] cleanup code
+- [ ] detail flashing process
 
 ### Hardware
 
 This software is tailor made for the Sonoff TH Origin (16A and 20A versions). Other, similar ESP32 powered Sonoff devices (POW Origin, POW Elite, etc.) will most likely work, too.
 
-### Flashing the software
-
-Hold the Button while powering up. Power up. Hit "Upload and monitor"
-
 ### Build guide
 
-TODO
+![Bricks](./docs/wiring.png)
+
+1. Read disclaimer below!
+1. Open housing by unscrewing all 4 screws.
+1. Solder 4 pins to the Terminal (3V3, GND, TX, RX).
+1. connect rainbow cable, route to outside.
+1. Connect to USB-to-serial adapter as show above.
+1. Flash the software using tool of your choice.
+1. Power up, and connect to the hotspot (see Usage-Section).
+
+### Usage
+
+Simply power up your BierBot Brick-32 and use any WiFi enabled device (Android, iPhone, Tablet, Mac, or PC) to scan for a Brick-32-Wifi (i.e. `Brick-32-0042123`) to configure your Brick.
 
 ### Buttons and LEDs
 
