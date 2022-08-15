@@ -43,6 +43,19 @@ The following LEDs are available to tell you which state your Brick-32 is in:
 
 ## Dev FAQs
 
+### Flash
+
+Flashing must not only include the programm itself, but the bootloader, the partitions table, and the boot_app:
+
+- `0x1000`: [.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/bin/bootloader_dio_40m.bin](/home/bernhard/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/bin/bootloader_dio_40m.bin).
+- `0x8000`: `/.pio/build/az-delivery-devkit-v4/partitions.bin` in repo folder
+- `0xe000`: [.platformio/packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin](/home/bernhard/.platformio/packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin)
+- `0x10000`: `firmware.bin` in repo folder
+
+```
+"/home/bernhard/.platformio/penv/bin/python" "/home/bernhard/.platformio/packages/tool-esptoolpy/esptool.py" --chip esp32 --port "/dev/ttyUSB0" --baud 460800 --before default_reset --after hard_reset write_flash -z --flash_mode dio --flash_freq 40m --flash_size 4MB 0x1000 /home/bernhard/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/bin/bootloader_dio_40m.bin 0x8000 /home/bernhard/Desktop/wd/BierBot-Brick-ESP32/.pio/build/az-delivery-devkit-v4/partitions.bin 0xe000 /home/bernhard/.platformio/packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin 0x10000 .pio/build/az-delivery-devkit-v4/firmware.bin
+```
+
 ### General
 
 Q: COM port not recognized:
