@@ -16,19 +16,33 @@ This software is tailor made for the Sonoff TH Origin (16A and 20A versions). Ot
 
 ### Build guide
 
-![Bricks](./docs/wiring.png)
+![Brick32 wiring](./docs/wiring.png)
 
 1. Read disclaimer below!
 1. Open housing by unscrewing all 4 screws.
 1. Solder 4 pins to the Terminal (3V3, GND, TX, RX).
 1. connect rainbow cable, route to outside.
 1. Connect to USB-to-serial adapter as show above.
-1. Flash the software using tool of your choice.
-1. Power up, and connect to the hotspot (see Usage-Section).
+1. Download the latest release from [here](https://github.com/BernhardSchlegel/Brick-ESP32/releases/latest), i.e. "brick32_release_v.X.Y.Z.zip" (X, Y, and Z being placeholders).
+1. Unzip the file to a folder.
+1. Flash the software using the official "Flash Download Tool" [available here](https://espressif.com/en/support/download/other-tools).
+   1. Unzip the tool, and open the "flash_download_tool_3.9.2.exe" (or similar) in the root folder.
+   1. In the dialog, set chipType dropdown to "ESP32", workmode to "develop", hit OK.
+   1. Refer the below image of all necessary adjustments:
+     1. Select the four binaries in the order shown. Select the respective addresses (starting with `0x`) on the right. Check all checkboxes to  the right of the filenames. Make sure the beginning of the filename (i.e. `0x8000_`) matches the address on the right (i.e. `0x8000`) for  each respective row. 
+     1. Select "SPI SPEED" of "40MHz" (should be the default), 
+     1. "SPI MODE" to "DIO" (should be the default", 
+     1. check "DoNotChgBin". At the bottom select the COM port (to figure out which one is your USB to serial converter, simply unplug and plug it  back it), i.e. "COM3", 
+     1. set "BAUD" to "460800".
+1. Disconnect the (mini) USB cable to your Serial Converter. Now: HOLD the button on the Sonoff, insert the USB cable (while still holding the button), and release the Button on the Sonoff again.
+1. Hit "START" (lower-right corner) of the flashing tool. Wait for the process to complete. If it fails: Make sure all rainbow cables are attached correctly, close and re-start the flashing tool.
+1. Power up, and connect to the hotspot (see [Usage-Section](#Usage)).
+
+![Flash download tool settings](./docs/flash_download_tool_settings.png)
 
 ### Usage
 
-Simply power up your BierBot Brick-32 and use any WiFi enabled device (Android, iPhone, Tablet, Mac, or PC) to scan for a Brick-32-Wifi (i.e. `Brick-32-0042123`) to configure your Brick.
+Simply power up your BierBot Brick-32 and use any WiFi enabled device (Android, iPhone, Tablet, Mac, or PC) to scan for a Brick-32-Wifi (i.e. `Brick-32-0042123`) to configure your Brick. You'll need an API key which you can get for free at [bricks.bierbot.com](https://bricks.bierbot.com).
 
 ### Buttons and LEDs
 
@@ -51,28 +65,9 @@ The following LEDs are available to tell you which state your Brick-32 is in:
    - Off: Relay is off due to force-override.
    - On: Relay is on due to force-override.
 
-## Dev FAQs
+## For Developers :heart:
 
-### Flash
-
-Flashing must not only include the programm itself, but the bootloader, the partitions table, and the boot_app:
-
-- `0x1000`: [.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/bin/bootloader_dio_40m.bin](/home/bernhard/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/bin/bootloader_dio_40m.bin).
-- `0x8000`: `/.pio/build/az-delivery-devkit-v4/partitions.bin` in repo folder
-- `0xe000`: [.platformio/packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin](/home/bernhard/.platformio/packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin)
-- `0x10000`: `firmware.bin` in repo folder
-
-```
-"/home/bernhard/.platformio/penv/bin/python" "/home/bernhard/.platformio/packages/tool-esptoolpy/esptool.py" --chip esp32 --port "/dev/ttyUSB0" --baud 460800 --before default_reset --after hard_reset write_flash -z --flash_mode dio --flash_freq 40m --flash_size 4MB 0x1000 /home/bernhard/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/bin/bootloader_dio_40m.bin 0x8000 /home/bernhard/Desktop/wd/BierBot-Brick-ESP32/.pio/build/az-delivery-devkit-v4/partitions.bin 0xe000 /home/bernhard/.platformio/packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin 0x10000 .pio/build/az-delivery-devkit-v4/firmware.bin
-```
-
-### General
-
-Q: COM port not recognized:
-A: Install the CP2102 USB to UART Bridge Controller driver from [here](https://www.silabs.com/developers/usb-to-uart-bridge-vcp-drivers)
-
-Q: Startup during debugging fails, message is `rst:0x1 (POWERON_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)`?
-A: Not enough power: The COM-Adapter is not able to provide it. As soon as you use WiFi you need to provide additional power, i.e. using AC.
+Refer the [Developer Readme](./docs/DEV.MD).
 
 ## Disclaimer
 
