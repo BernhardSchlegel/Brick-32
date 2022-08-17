@@ -65,6 +65,11 @@ The following LEDs are available to tell you which state your Brick-32 is in:
    - Off: Relay is off due to force-override.
    - On: Relay is on due to force-override.
 
+## Troubleshooting
+
+Q: My COM port is not recognized?</br>
+A: Download and install [the official drivers from here.](https://ftdichip.com/drivers/vcp-drivers/)
+
 ## For Developers :heart:
 
 Refer the [Developer Readme](./docs/DEV.MD).
