@@ -17,8 +17,9 @@
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 
-#define GPIO_OUT_RELAY_BISTABLE_ON 22
-#define GPIO_OUT_RELAY_BISTABLE_OFF 19
+#define GPIO_OUT_RELAY_BISTABLE_ON 22 // Sonoff TH Origin 20A
+#define GPIO_OUT_RELAY_BISTABLE_OFF 19 // Sonoff TH Origin 20A
+#define GPIO_OUT_RELAY_ON 21  // Sonoff TH Origin 16A
 #define GPIO_OUT_LED_GREEN_AUTO 13
 #define GPIO_OUT_LED_BLUE_WIFI 15
 #define GPIO_OUT_LED_RED_ONOFF 16
@@ -63,7 +64,7 @@ MAIN_STATE currentStateMain = MAIN_STATE_CONTROL;
 auto led_onoff = JLed(GPIO_OUT_LED_RED_ONOFF).LowActive().Off();
 auto led_wifi = JLed(GPIO_OUT_LED_BLUE_WIFI).LowActive().Off();
 auto led_relay = JLed(GPIO_OUT_LED_GREEN_AUTO).LowActive().Off();
-auto ac1 = AcOut(GPIO_OUT_RELAY_BISTABLE_ON, GPIO_OUT_RELAY_BISTABLE_OFF);
+auto ac1 = AcOut(GPIO_OUT_RELAY_BISTABLE_ON, GPIO_OUT_RELAY_ON, GPIO_OUT_RELAY_BISTABLE_OFF);
 
 // wifi and settings
 String apikey;
@@ -79,7 +80,7 @@ String global_error_text = "";
 String global_warning_text = "";
 String chipid = "";
 String ssid = "";
-String global_version = "0.8.0";
+String global_version = "0.8.2";
 uint32_t main_interval_ms = 1000; // 1s default intervall for first iteration
 String sensor_id = "";
 float celsius, fahrenheit;
@@ -227,7 +228,7 @@ void handler_ac(Button2 &btn)
     else if (currentStateAc1 == AC_STATE_ON)
     {
       currentStateAc1 = AC_STATE_AUT;
-      ac1.setOverwriteEnabled(true);
+      ac1.setOverwriteEnabled(false);
       ac1.setOverwriteValue(false);
     }
 

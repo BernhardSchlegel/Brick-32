@@ -1,23 +1,33 @@
 #include "AcOut.h"
 
-AcOut::AcOut(unsigned int pin_on, unsigned int pin_off)
+AcOut::AcOut(unsigned int pin_on_1, unsigned int pin_off)
 {
-    this->init(pin_on, pin_off, false);
+  this->init(pin_on_1, 0, pin_off, false);
 }
 
-AcOut::AcOut(unsigned int pin_on, unsigned int pin_off, bool invert)
+AcOut::AcOut(unsigned int pin_on_1, unsigned int pin_off, bool invert)
 {
-  this->init(pin_on, pin_off, invert);
+  this->init(pin_on_1, 0, pin_off, invert);
 }
 
-void AcOut::init(unsigned int pin_on, unsigned int pin_off, bool invert)
+AcOut::AcOut(unsigned int pin_on_1, unsigned int pin_on_2, unsigned int pin_off, bool invert)
+{
+  this->init(pin_on_1, pin_on_2, pin_off, invert);
+}
+
+void AcOut::init(unsigned int pin_on_1, unsigned int pin_on_2, unsigned int pin_off, bool invert)
 {
   this->pin_off= pin_off;
-  this->pin_on= pin_on;
+  this->pin_on_1= pin_on_1;
+  this->pin_on_2= pin_on_2;
   this->control_state = false;
   this->overwrite_enabled = false;
   this->overwrite_state = false;
-  pinMode(this->pin_on, OUTPUT);
+  pinMode(this->pin_on_1, OUTPUT);
+  if (this->pin_on_2 != 0)
+  {
+    pinMode(this->pin_on_2, OUTPUT);
+  }
   pinMode(this->pin_off, OUTPUT);
   this->invert = invert;
 }
@@ -60,12 +70,21 @@ void AcOut::setCurrentValueOnGpio()
 
     if (mappedValue)
     {
-      digitalWrite(this->pin_on, 1);
+      digitalWrite(this->pin_on_1, 1);
       digitalWrite(this->pin_off, 0);
+
+      if (this->pin_on_2 != 0) {
+        digitalWrite(this->pin_on_2, 1);
+      }
     }
     else
     {
-      digitalWrite(this->pin_on, 0);
+      digitalWrite(this->pin_on_1, 0);
       digitalWrite(this->pin_off, 1);
+
+      if (this->pin_on_2 != 0)
+      {
+        digitalWrite(this->pin_on_2, 0);
+      }
     }
 }
