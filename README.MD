@@ -16,6 +16,8 @@ This software is tailor made for the Sonoff TH Origin (16A and 20A versions). Ot
 
 ### Build guide
 
+A detailled build guide can be found on [YouTube](https://www.youtube.com/watch?v=5TI9fxsTRmM) and on the [BierBot blog](https://bierbot.com/blog/tutorial-easy-brewing-control-build/). Feel free to check it out, if the following explanation is not detailled enough.
+
 ![Brick32 wiring](./docs/wiring.png)
 
 1. Read disclaimer below!
