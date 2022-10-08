@@ -64,7 +64,8 @@ MAIN_STATE currentStateMain = MAIN_STATE_CONTROL;
 auto led_onoff = JLed(GPIO_OUT_LED_RED_ONOFF).LowActive().Off();
 auto led_wifi = JLed(GPIO_OUT_LED_BLUE_WIFI).LowActive().Off();
 auto led_relay = JLed(GPIO_OUT_LED_GREEN_AUTO).LowActive().Off();
-auto ac1 = AcOut(GPIO_OUT_RELAY_BISTABLE_ON, GPIO_OUT_RELAY_ON, GPIO_OUT_RELAY_BISTABLE_OFF);
+auto ac1 = AcOut(GPIO_OUT_RELAY_BISTABLE_ON, GPIO_OUT_RELAY_ON, GPIO_OUT_RELAY_BISTABLE_OFF, false);
+
 
 // wifi and settings
 String apikey;
@@ -80,7 +81,7 @@ String global_error_text = "";
 String global_warning_text = "";
 String chipid = "";
 String ssid = "";
-String global_version = "0.8.2";
+String global_version = "0.8.3";
 uint32_t main_interval_ms = 1000; // 1s default intervall for first iteration
 String sensor_id = "";
 float celsius, fahrenheit;
