@@ -1,14 +1,33 @@
 ![Bricks](./docs/logo.png)
-# BierBot Brick ESP32
+# Brick 32
+
+This repo is an alternate firmware for the Sonoff Origin producs (TH Origin THR316/THR320, TH Elite THR316D) to turn them into a brewering control (mashing and fermentation). The relay can be configured to control heating, cooling, agitation and pumps. The DS18B20 sensor supplies the temperature reading. After flashing, they can be added as a "Brick" on [BierBot Bricks](https://bricks.bierbot.com) allowing a whole range of features:
+
+- Super easy setup and easy to try out.
+- Android app and Web app available, iOS coming soon.
+- Various kettle setups supported: BIAB, RIMS, HERMS.
+- Free, open source license (GPT-v3)
+- PDI controller that works with a simple and cheap non PWM/SSR relay and yet eliminates temperature overshoots.
+- Mashing controller and fermentation controller, both with automatic timer control.
+- Multi-language (German, English, Portugese, [tell us](https://bierbot.com/contact/) if you want to help!)
+- Integrated recipe management: Set the temperature, the time, etc.
+- Integrated logging: See your temperature log during the mash and export a PDF after brewing
+- User authentication
+- Access from everywhere
+- Found a brewery and invite friends to share equipment, recipes, etc.
+- Works perfectly on any Smartphone, Tablet, PC or Mac (or any web browser).
+- Beer.XML import
+- Configurable units for temperature (Celsius/Fahrenheit), gravity (°Plato, specific gravity), volume (Liters, Gallons), weight (Grams, pounds) etc.
+- Control agitators, pumps, valves.
+- Missing something❓  [tell us!](https://github.com/BernhardSchlegel/Brick-32/issues) 🗨️
+
+If you want to use a **RaspberryPi** and do all the wiring/electronics yourself, [please head over here](https://github.com/BernhardSchlegel/BierBot-Bricks-RaspberryPi).
+
+## Images
 
 ![Bricks](./docs/build_s.jpg)
 
 ## Manual
-
-### TODOs
-
-- [ ] cleanup code
-- [ ] detail flashing process
 
 ### Hardware
 
