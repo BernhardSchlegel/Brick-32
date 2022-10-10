@@ -1,7 +1,7 @@
 ![Bricks](./docs/logo.png)
 # Brick 32
 
-This repo is an alternate firmware for the Sonoff Origin producs (TH Origin THR316/THR320, TH Elite THR316D) to turn them into a brewering control (mashing and fermentation). The relay can be configured to control heating, cooling, agitation and pumps. The DS18B20 sensor supplies the temperature reading. After flashing, they can be added as a "Brick" on [BierBot Bricks](https://bricks.bierbot.com) allowing a whole range of features:
+This repo is an alternate firmware for the Sonoff Origin producs (TH Origin THR316/THR320, TH Elite THR316D) to turn them into a brewing control (mashing and fermentation). The relay can be configured to control heating, cooling, agitation and pumps. The DS18B20 sensor supplies the temperature reading. After flashing, they can be added as a "Brick" on [BierBot Bricks](https://bricks.bierbot.com) allowing a whole range of features:
 
 - Super easy setup and easy to try out.
 - Android app and Web app available, iOS coming soon.
