@@ -6,7 +6,7 @@ This repo is an alternate firmware for the Sonoff Origin producs (TH Origin THR3
 - Super easy setup and easy to try out.
 - Android app and Web app available, iOS coming soon.
 - Various kettle setups supported: BIAB, RIMS, HERMS.
-- Free, open source license (GPT-v3)
+- Free, open source license (GPL-v3)
 - PDI controller that works with a simple and cheap non PWM/SSR relay and yet eliminates temperature overshoots.
 - Mashing controller and fermentation controller, both with automatic timer control.
 - Multi-language (German, English, Portugese, [tell us](https://bierbot.com/contact/) if you want to help!)
