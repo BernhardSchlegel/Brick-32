@@ -81,7 +81,7 @@ String global_error_text = "";
 String global_warning_text = "";
 String chipid = "";
 String ssid = "";
-String global_version = "0.8.3";
+String global_version = "0.8.4";
 uint32_t main_interval_ms = 1000; // 1s default intervall for first iteration
 String sensor_id = "";
 float celsius, fahrenheit;
@@ -420,10 +420,14 @@ void setup()
   // show the addresses we found on the bus
   Serial.print("Device 0 Address: ");
   printAddress(insideThermometer);
-  Serial.println();
+
+  char buff[15] = ""; //3ffc3664
+  sprintf(buff, "0x0000%x", insideThermometer);
+  sensor_id = String(buff);
 
   // set the resolution to 9 bit (Each Dallas/Maxim device is capable of several different resolutions)
-  sensors.setResolution(insideThermometer, 9);
+  // 0.5, 0.25, 0.125, and 0.0625 degC for 9- , 10-, 11-, and 12-bit
+  sensors.setResolution(insideThermometer, 11);
 }
 
 // function to print the temperature for a device
