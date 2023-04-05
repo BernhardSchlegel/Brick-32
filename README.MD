@@ -1,5 +1,8 @@
 ![Bricks](./docs/logo.png)
-# Brick 32
+# ESP32, app based brewing control for mashing and fermentation
+## Brick 32
+
+What's the easiest way to build a brewing control? Repurpose a off-the-shelve WiFi switch!
 
 This repo is an alternate firmware for the Sonoff Origin producs (TH Origin THR316/THR320, TH Elite THR316D) to turn them into a brewing control (mashing and fermentation). The relay can be configured to control heating, cooling, agitation and pumps. The DS18B20 sensor supplies the temperature reading. After flashing, they can be added as a "Brick" on [BierBot Bricks](https://bricks.bierbot.com) allowing a whole range of features:
 
