@@ -17,6 +17,7 @@
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 
+#define GPIO_OUT_DRSW_ONOFF 4 // Sonoff TH Elite Dry Contact
 #define GPIO_OUT_RELAY_BISTABLE_ON 22 // Sonoff TH Origin 20A
 #define GPIO_OUT_RELAY_BISTABLE_OFF 19 // Sonoff TH Origin 20A
 #define GPIO_OUT_RELAY_ON 21  // Sonoff TH Origin 16A
@@ -428,6 +429,10 @@ void setup()
   // set the resolution to 9 bit (Each Dallas/Maxim device is capable of several different resolutions)
   // 0.5, 0.25, 0.125, and 0.0625 degC for 9- , 10-, 11-, and 12-bit
   sensors.setResolution(insideThermometer, 11);
+
+  // DRSW relais
+  pinMode(GPIO_OUT_DRSW_ONOFF, OUTPUT);
+  digitalWrite(GPIO_OUT_DRSW_ONOFF, 0);
 }
 
 // function to print the temperature for a device
@@ -452,10 +457,12 @@ void contactBackend()
     String apikey_restored = readStringFromEEPROM(EEPROM_ADDRESS_APIKEY);
     String temp = String(celsius);
     String relais1 = String((int)ac1.getCurrentValue());
-    String url = "https://bricks.bierbot.com/api/iot/v1?apikey=" + apikey_restored + "&type=" + "sonoff_th_origin" + "&brand=" + "bierbot" + "&version=" + global_version + "&s_number_temp_0=" + temp + "&a_bool_epower_0=" + relais1 + "&chipid=" + chipid + "&s_number_temp_id_0=" + sensor_id;
+    String relais2 = String(digitalRead(GPIO_OUT_DRSW_ONOFF));
+    String url = "https://bricks.bierbot.com/api/iot/v1?apikey=" + apikey_restored + "&type=" + "sonoff_th_origin" + "&brand=" + "bierbot" + "&version=" + global_version + "&s_number_temp_0=" + temp + "&a_bool_epower_0=" + relais1 + "&a_bool_epower_1=" + relais2 + "&chipid=" + chipid + "&s_number_temp_id_0=" + sensor_id;
 
     Serial.print("s_number_temp_0=" + temp);
-    Serial.println(", a_bool_epower_0=" + relais1);
+    Serial.print(", a_bool_epower_0=" + relais1);
+    Serial.println(", a_bool_epower_1=" + relais2);
 
     WiFiClientSecure client;
     client.setInsecure(); // unfortunately necessary, ESP8266 does not support SSL without hard coding certificates
@@ -488,6 +495,7 @@ void contactBackend()
         Serial.println(F("setting next request to 60s."));
         main_interval_ms = 60000;
         ac1.setControlValue(false);
+        digitalWrite(GPIO_OUT_DRSW_ONOFF, 0);
       }
       else if (payload.indexOf("{") == -1)
       {
@@ -495,6 +503,7 @@ void contactBackend()
         Serial.println(F("setting next request to 60s."));
         main_interval_ms = 60000;
         ac1.setControlValue(false);
+        digitalWrite(GPIO_OUT_DRSW_ONOFF, 0);
       }
       else
       {
@@ -511,6 +520,7 @@ void contactBackend()
           global_error = 1;
           global_error_text = String("JSON error: ") + String(error.f_str());
           ac1.setControlValue(false);
+          digitalWrite(GPIO_OUT_DRSW_ONOFF, 0);
         }
         else
         {
@@ -522,6 +532,7 @@ void contactBackend()
             global_error_text = String(error_text);
             global_error = 1;
             ac1.setControlValue(false);
+            digitalWrite(GPIO_OUT_DRSW_ONOFF, 0);
           }
           else
           {
@@ -533,6 +544,7 @@ void contactBackend()
               global_warning_text = String(warning_text);
               global_warning = 1;
               ac1.setControlValue(false);
+              digitalWrite(GPIO_OUT_DRSW_ONOFF, 0);
             }
             else
             {
@@ -549,6 +561,7 @@ void contactBackend()
               // try again in 30s
               main_interval_ms = 30000;
             }
+            // AC relais
             if (doc.containsKey("epower_0_state"))
             {
               ac1.setControlValue(doc["epower_0_state"]);
@@ -557,6 +570,15 @@ void contactBackend()
             {
               ac1.setControlValue(false);
             }
+            // Dry Contact relais
+            if (doc.containsKey("epower_1_state"))
+            {
+              digitalWrite(GPIO_OUT_DRSW_ONOFF, doc["epower_1_state"].as<uint8_t>());
+            }
+            else
+            {
+              digitalWrite(GPIO_OUT_DRSW_ONOFF, 0);
+            }           
           }
         }
       }
@@ -566,6 +588,7 @@ void contactBackend()
       Serial.print(F("setting next request to 60s."));
       main_interval_ms = 60000;
       ac1.setControlValue(false);
+      digitalWrite(GPIO_OUT_DRSW_ONOFF, 0);
     }
     http.end(); // Close connection
   }
