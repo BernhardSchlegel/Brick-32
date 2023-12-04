@@ -11,7 +11,7 @@
 #include <OneWire.h>
 #include <DallasTemperature.h>
 #include <jled.h>
-#include "AcOut.h"
+#include "GenericOut.h"
 #include <EEPROM.h>
 #include <WiFiClientSecure.h>
 #include <HTTPClient.h>
@@ -52,7 +52,6 @@ enum MAIN_STATE
   MAIN_STATE_WIFI_SETUP
 };
 
-
 #define EEPROM_ADDRESS_APIKEY 0
 #define HTTP_REQUEST_RESPONSE_BUF_LEN 255
 
@@ -65,8 +64,12 @@ MAIN_STATE currentStateMain = MAIN_STATE_CONTROL;
 auto led_onoff = JLed(GPIO_OUT_LED_RED_ONOFF).LowActive().Off();
 auto led_wifi = JLed(GPIO_OUT_LED_BLUE_WIFI).LowActive().Off();
 auto led_relay = JLed(GPIO_OUT_LED_GREEN_AUTO).LowActive().Off();
-auto ac1 = AcOut(GPIO_OUT_RELAY_BISTABLE_ON, GPIO_OUT_RELAY_ON, GPIO_OUT_RELAY_BISTABLE_OFF, false);
-
+auto ac1 = GenericOut(GPIO_OUT_RELAY_BISTABLE_ON, GPIO_OUT_RELAY_ON, GPIO_OUT_RELAY_BISTABLE_OFF, false);
+#if defined(TH_ELITE)
+auto drsw = GenericOut(GPIO_OUT_DRSW_ONOFF, false);
+#else
+auto drsw = GenericOut(0, false); // Init with 0 -> "not present"
+#endif
 
 // wifi and settings
 String apikey;
@@ -426,13 +429,9 @@ void setup()
   sprintf(buff, "0x0000%x", insideThermometer);
   sensor_id = String(buff);
 
-  // set the resolution to 9 bit (Each Dallas/Maxim device is capable of several different resolutions)
+  // set the resolution to 11 bit (Each Dallas/Maxim device is capable of several different resolutions)
   // 0.5, 0.25, 0.125, and 0.0625 degC for 9- , 10-, 11-, and 12-bit
   sensors.setResolution(insideThermometer, 11);
-
-  // DRSW relais
-  pinMode(GPIO_OUT_DRSW_ONOFF, OUTPUT);
-  digitalWrite(GPIO_OUT_DRSW_ONOFF, 0);
 }
 
 // function to print the temperature for a device
@@ -454,15 +453,21 @@ void contactBackend()
 {
   if (1 == 1)
   { // WiFi.status() == WL_CONNECTED) { //Check WiFi connection status
-    String apikey_restored = readStringFromEEPROM(EEPROM_ADDRESS_APIKEY);
-    String temp = String(celsius);
-    String relais1 = String((int)ac1.getCurrentValue());
-    String relais2 = String(digitalRead(GPIO_OUT_DRSW_ONOFF));
-    String url = "https://bricks.bierbot.com/api/iot/v1?apikey=" + apikey_restored + "&type=" + "sonoff_th_origin" + "&brand=" + "bierbot" + "&version=" + global_version + "&s_number_temp_0=" + temp + "&a_bool_epower_0=" + relais1 + "&a_bool_epower_1=" + relais2 + "&chipid=" + chipid + "&s_number_temp_id_0=" + sensor_id;
+    String apikey = readStringFromEEPROM(EEPROM_ADDRESS_APIKEY);
+    String s_number_temp_0 = String(celsius);
+    String a_bool_epower_0 = String((int)ac1.getCurrentValue());
+    String a_bool_epower_1 = String((int)drsw.getCurrentValue());
+    String url ="https://bricks.bierbot.com/api/iot/v1?apikey=" + apikey + "&brand=" + "bierbot" + "&version=" + global_version + "&s_number_temp_0=" + s_number_temp_0 + "&chipid=" + chipid + "&s_number_temp_id_0=" + sensor_id;
+    if (drsw.isValid()) { // TH Elite series
+      url += "&type=sonoff_th_elite&a_bool_epower_0=" + a_bool_epower_0 + "&a_bool_epower_1=" + a_bool_epower_1;
+    }
+    else { // TH Origin series (w/o Dry Contact)
+      url += "&type=sonoff_th_origin&a_bool_epower_0=" + a_bool_epower_0;
+    }
 
-    Serial.print("s_number_temp_0=" + temp);
-    Serial.print(", a_bool_epower_0=" + relais1);
-    Serial.println(", a_bool_epower_1=" + relais2);
+    Serial.print("s_number_temp_0=" + s_number_temp_0);
+    Serial.print(", a_bool_epower_0=" + a_bool_epower_0);
+    Serial.println(", a_bool_epower_1=" + a_bool_epower_1);
 
     WiFiClientSecure client;
     client.setInsecure(); // unfortunately necessary, ESP8266 does not support SSL without hard coding certificates
@@ -495,7 +500,7 @@ void contactBackend()
         Serial.println(F("setting next request to 60s."));
         main_interval_ms = 60000;
         ac1.setControlValue(false);
-        digitalWrite(GPIO_OUT_DRSW_ONOFF, 0);
+        drsw.setControlValue(false);
       }
       else if (payload.indexOf("{") == -1)
       {
@@ -503,7 +508,7 @@ void contactBackend()
         Serial.println(F("setting next request to 60s."));
         main_interval_ms = 60000;
         ac1.setControlValue(false);
-        digitalWrite(GPIO_OUT_DRSW_ONOFF, 0);
+        drsw.setControlValue(false);
       }
       else
       {
@@ -520,7 +525,7 @@ void contactBackend()
           global_error = 1;
           global_error_text = String("JSON error: ") + String(error.f_str());
           ac1.setControlValue(false);
-          digitalWrite(GPIO_OUT_DRSW_ONOFF, 0);
+          drsw.setControlValue(false);
         }
         else
         {
@@ -532,7 +537,7 @@ void contactBackend()
             global_error_text = String(error_text);
             global_error = 1;
             ac1.setControlValue(false);
-            digitalWrite(GPIO_OUT_DRSW_ONOFF, 0);
+            drsw.setControlValue(false);
           }
           else
           {
@@ -544,7 +549,7 @@ void contactBackend()
               global_warning_text = String(warning_text);
               global_warning = 1;
               ac1.setControlValue(false);
-              digitalWrite(GPIO_OUT_DRSW_ONOFF, 0);
+              drsw.setControlValue(false);
             }
             else
             {
@@ -573,12 +578,12 @@ void contactBackend()
             // Dry Contact relais
             if (doc.containsKey("epower_1_state"))
             {
-              digitalWrite(GPIO_OUT_DRSW_ONOFF, doc["epower_1_state"].as<uint8_t>());
+              drsw.setControlValue(doc["epower_1_state"]);
             }
             else
             {
-              digitalWrite(GPIO_OUT_DRSW_ONOFF, 0);
-            }           
+              drsw.setControlValue(false);
+            }
           }
         }
       }
@@ -588,7 +593,7 @@ void contactBackend()
       Serial.print(F("setting next request to 60s."));
       main_interval_ms = 60000;
       ac1.setControlValue(false);
-      digitalWrite(GPIO_OUT_DRSW_ONOFF, 0);
+      drsw.setControlValue(false);
     }
     http.end(); // Close connection
   }
@@ -617,8 +622,15 @@ void loop()
     Serial.println("##### MAIN: contacting backend");
     contactBackend();
 
-    Serial.println("##### MAIN: setting relais");
+    Serial.println("##### MAIN: setting AC relais");
     ac1.setCurrentValueOnGpio();
+
+    if (drsw.isValid())
+    {
+      Serial.println("##### MAIN: setting Dry Contact relais");
+      drsw.setCurrentValueOnGpio();
+    }
+
     set_LEDs();
   }
 }

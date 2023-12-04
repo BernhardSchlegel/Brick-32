@@ -1,9 +1,9 @@
-#ifndef ACOUT_H
-#define ACOUT_H
+#ifndef GENERICOUT_H
+#define GENERICOUT_H
 
 #include <Arduino.h>
 
-class AcOut
+class GenericOut
 {
 
 private:
@@ -16,9 +16,10 @@ private:
   bool invert;
 
 public:
-  AcOut(unsigned int pin_on_1, unsigned int pin_off);
-  AcOut(unsigned int pin_on_1, unsigned int pin_off, bool invert);
-  AcOut(unsigned int pin_on_1, unsigned int pin_on_2, unsigned int pin_off, bool invert);
+  GenericOut(unsigned int pin_on_1, bool invert);
+  GenericOut(unsigned int pin_on_1, unsigned int pin_off);
+  GenericOut(unsigned int pin_on_1, unsigned int pin_off, bool invert);
+  GenericOut(unsigned int pin_on_1, unsigned int pin_on_2, unsigned int pin_off, bool invert);
 
   void setControlValue(bool value);
 
@@ -27,6 +28,8 @@ public:
   void setOverwriteValue(bool value);
 
   bool getCurrentValue();
+
+  bool isValid();
 
   void setCurrentValueOnGpio();
 
