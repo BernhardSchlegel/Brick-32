@@ -9,7 +9,6 @@ typedef struct
   uint8_t pin_wr;
   bool celsius;
   bool fahrenheit;
-  bool humidity;
 } tm1621Device_t;
 
 tm1621Device_t tm1621Device;
@@ -218,10 +217,10 @@ static void sendRows(void)
   if (tm1621Device.celsius) {
     buffer[3] |= 0x80;
   }
+  /*
   if (tm1621Device.humidity) {
     buffer[6] |= 0x08;
   }
-  /*
   if (tm1621Device.kWh) {
     buffer[4] |= 0x08;
   }
@@ -277,7 +276,7 @@ void Tm1621Drv::init(uint8_t gpio_da, uint8_t gpio_cs, uint8_t gpio_rd, uint8_t 
 
   snprintf_P(tm1621Device.row[0], sizeof(tm1621Device.row[0]), PSTR("8888"));
   snprintf_P(tm1621Device.row[1], sizeof(tm1621Device.row[1]), PSTR("8888"));
-  tm1621Device.celsius = tm1621Device.fahrenheit = tm1621Device.humidity = true;
+  tm1621Device.celsius = tm1621Device.fahrenheit = true;
   sendRows();
 }
 
@@ -285,7 +284,7 @@ void Tm1621Drv::cls(void)
 {
   snprintf_P(tm1621Device.row[0], sizeof(tm1621Device.row[0]), PSTR("    "));
   snprintf_P(tm1621Device.row[1], sizeof(tm1621Device.row[1]), PSTR("    "));
-  tm1621Device.celsius = tm1621Device.fahrenheit = tm1621Device.humidity = false;
+  tm1621Device.celsius = tm1621Device.fahrenheit = false;
   sendRows();
 }
 
@@ -298,19 +297,9 @@ void Tm1621Drv::showTemp(float temperature, bool fahrenheit)
   sendRows();
 }
 
-void Tm1621Drv::showHumidity(float rH)
-{
-  /* Humidity unit is fixed to row[1] */
-  String(rH, 1).toCharArray(tm1621Device.row[1], sizeof(tm1621Device.row[1]));
-  tm1621Device.humidity = true;
-  sendRows();
-}
-
 void Tm1621Drv::showText(const char* text)
 {
   // Always print text in row[1]
-  strncpy(tm1621Device.row[1], text, sizeof(tm1621Device.row[1])); // sizeof tm1621Device.row leads to right padded text
-  // No unit for row 2 then (only humidity at time of writing)
-  tm1621Device.humidity = false;
+  strncpy(tm1621Device.row[1], text, sizeof(tm1621Device.row[1])); // right padded text
   sendRows();
 }
