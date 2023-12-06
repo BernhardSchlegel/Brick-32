@@ -16,6 +16,13 @@
 #include <WiFiClientSecure.h>
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
+#include "Tm1621Drv.h"
+
+// Sonoff TH Elite LCD display driver
+#define GPIO_TM1621_DAT 5
+#define GPIO_TM1621_CS 17
+#define GPIO_TM1621_WR 18
+#define GPIO_TM1621_RD 23
 
 #define GPIO_OUT_DRSW_ONOFF 4 // Sonoff TH Elite Dry Contact
 #define GPIO_OUT_RELAY_BISTABLE_ON 22 // Sonoff TH Origin 20A
@@ -28,6 +35,9 @@
 #define GPIO_ONE_WIRE_BUS 25
 #define GPIO_OUT_POWER_RJ11 27
 
+// TM1621 LCD driver
+Tm1621Drv Tm1621;
+
 // Setup a oneWire instance to communicate with any OneWire devices (not just Maxim/Dallas temperature ICs)
 OneWire oneWire(GPIO_ONE_WIRE_BUS);
 
@@ -37,10 +47,11 @@ DallasTemperature sensors(&oneWire);
 // arrays to hold device address
 DeviceAddress insideThermometer;
 
-TaskHandle_t Core0TaskHnd;
+TaskHandle_t Task1Hnd, Task2Hnd;
 
 enum AC_STATE
 {
+  AC_STATE_UNDEF = -1,
   AC_STATE_AUT = 0,
   AC_STATE_ON = 1,
   AC_STATE_OFF = 2
@@ -356,12 +367,60 @@ void CoreTask1(void *parameter)
   }
 }
 
+void CoreTask2(void *parameter)
+{
+  // Init TM1621
+  Tm1621.init(GPIO_TM1621_DAT, GPIO_TM1621_CS, GPIO_TM1621_RD, GPIO_TM1621_WR);
+  vTaskDelay(5000/*ms*/ / portTICK_PERIOD_MS); // Not mandatory. Just display the test pattern for a while.
+  // Clear LCD
+  Tm1621.cls();
+
+  for (;;)
+  {
+    /* Show Auto/on/off text but only on state change */
+    static AC_STATE lastStateAc1 = AC_STATE_UNDEF;
+    if (lastStateAc1 != currentStateAc1)
+    {
+      lastStateAc1 = currentStateAc1;
+
+      switch (lastStateAc1)
+      {
+        case AC_STATE_AUT:
+        Tm1621.showText("AUTO");
+        break;
+
+        case AC_STATE_OFF:
+        Tm1621.showText("OFF");
+        break;
+
+        case AC_STATE_ON:
+        Tm1621.showText("ON");
+        break;
+      }
+    }
+
+    /* Show current temperatur but only on state change */
+    static float last_celsius = 999.9f;
+    if (last_celsius != celsius)
+    {
+      last_celsius = celsius;
+
+      Tm1621.showTemp(last_celsius);
+    }
+
+    /* Limit loop to 5 Hz */
+    vTaskDelay(200/*ms*/ / portTICK_PERIOD_MS);
+  }
+}
+
 void setup()
 {
   Serial.begin(115200);
 
-  // create second task for handling GPIOs
-  xTaskCreatePinnedToCore(CoreTask1, "CPU_1", 1000, NULL, 1, &Core0TaskHnd, 1);
+  // create task for handling GPIOs
+  xTaskCreatePinnedToCore(CoreTask1, "Task1", 1000, NULL, 1, &Task1Hnd, 1);
+  // create task for handling LCD
+  xTaskCreatePinnedToCore(CoreTask2, "Task2", 1000, NULL, 1, &Task2Hnd, 1);
 
   chipid = String(getFlashChipId()) + "_" + String(WiFi.macAddress());
   Serial.println("chipid: " + chipid);
@@ -435,9 +494,8 @@ void setup()
 }
 
 // function to print the temperature for a device
-void printTemperature(DeviceAddress deviceAddress)
+void printTemperature()
 {
-  celsius = sensors.getTempC(deviceAddress);
   if (celsius == DEVICE_DISCONNECTED_C)
   {
     Serial.println("Error: Could not read temperature data");
@@ -609,6 +667,16 @@ void loop()
     reset_config_due = false;
     resetConfig();
   }
+
+  static uint32_t pollTemperature_interval = 0;
+  if (TimeReached(pollTemperature_interval))
+  {
+    SetNextTimeInterval(pollTemperature_interval, 2000);
+
+    sensors.requestTemperatures(); // Send the command to get temperatures
+    celsius = sensors.getTempC(insideThermometer);
+  }
+
   static uint32_t state_main_interval = 0;
   if (TimeReached(state_main_interval))
   {
@@ -616,8 +684,7 @@ void loop()
     SetNextTimeInterval(state_main_interval, main_interval_ms);
 
     Serial.println("##### MAIN: reading temperature");
-    sensors.requestTemperatures(); // Send the command to get temperatures
-    printTemperature(insideThermometer);
+    printTemperature();
 
     Serial.println("##### MAIN: contacting backend");
     contactBackend();
