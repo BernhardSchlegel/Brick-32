@@ -420,7 +420,11 @@ void setup()
   // create task for handling GPIOs
   xTaskCreatePinnedToCore(CoreTask1, "Task1", 1000, NULL, 1, &Task1Hnd, 1);
   // create task for handling LCD
-  xTaskCreatePinnedToCore(CoreTask2, "Task2", 1000, NULL, 1, &Task2Hnd, 1);
+  /*
+      Doubled the stack size or the Stack canary keeps dying ;)
+      snprintf (Tm1621Drv) needs some amount of stack!
+  */
+  xTaskCreatePinnedToCore(CoreTask2, "Task2", 2000, NULL, 1, &Task2Hnd, 1);
 
   chipid = String(getFlashChipId()) + "_" + String(WiFi.macAddress());
   Serial.println("chipid: " + chipid);

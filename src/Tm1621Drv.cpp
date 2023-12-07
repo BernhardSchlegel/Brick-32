@@ -291,7 +291,7 @@ void Tm1621Drv::cls(void)
 void Tm1621Drv::showTemp(float temperature, bool fahrenheit)
 {
   /* Temperature unit is fixed to row[0] */
-  String(temperature, 1).toCharArray(tm1621Device.row[0], sizeof(tm1621Device.row[0]));
+  snprintf_P(tm1621Device.row[0], sizeof(tm1621Device.row[0]), PSTR("%.1f"), temperature);
   tm1621Device.fahrenheit = tm1621Device.celsius = false;
   (fahrenheit) ? tm1621Device.fahrenheit = true : tm1621Device.celsius = true;
   sendRows();
@@ -300,6 +300,6 @@ void Tm1621Drv::showTemp(float temperature, bool fahrenheit)
 void Tm1621Drv::showText(const char* text)
 {
   // Always print text in row[1]
-  strncpy(tm1621Device.row[1], text, sizeof(tm1621Device.row[1])); // right padded text
+  snprintf(tm1621Device.row[1], sizeof(tm1621Device.row[1]), text); // right padded text
   sendRows();
 }
