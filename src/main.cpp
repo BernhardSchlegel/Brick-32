@@ -500,11 +500,6 @@ void setup()
 // function to print the temperature for a device
 void printTemperature()
 {
-  if (celsius == DEVICE_DISCONNECTED_C)
-  {
-    Serial.println("Error: Could not read temperature data");
-    return;
-  }
   Serial.print("Temp C: ");
   Serial.print(celsius);
   Serial.print(" Temp F: ");
@@ -677,8 +672,13 @@ void loop()
   {
     SetNextTimeInterval(pollTemperature_interval, 2000);
 
+    Serial.println("##### MAIN: reading temperature");
     sensors.requestTemperatures(); // Send the command to get temperatures
     celsius = sensors.getTempC(insideThermometer);
+    if (celsius == DEVICE_DISCONNECTED_C)
+    {
+      Serial.println("Error: Could not read temperature data");
+    }
   }
 
   static uint32_t state_main_interval = 0;
@@ -687,7 +687,7 @@ void loop()
     // one interval delay in case server wants to set new interval
     SetNextTimeInterval(state_main_interval, main_interval_ms);
 
-    Serial.println("##### MAIN: reading temperature");
+    Serial.println("##### MAIN: printing temperature");
     printTemperature();
 
     Serial.println("##### MAIN: contacting backend");
