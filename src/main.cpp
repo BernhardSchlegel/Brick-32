@@ -100,6 +100,7 @@ String global_version = "0.9.0";
 uint32_t main_interval_ms = 1000; // 1s default intervall for first iteration
 String sensor_id = "";
 float celsius, fahrenheit;
+float global_temp_offsetcelsius_0; // sensor offset from the UI. For display purposes only! 
 
 // core syncs
 // button is polled on CPU1, wm manager is on CPU0
@@ -399,13 +400,15 @@ void CoreTask2(void *parameter)
       }
     }
 
-    /* Show current temperatur but only on state change */
+    /* Show current temperature but only on state change */
     static float last_celsius = 999.9f;
-    if (last_celsius != celsius)
+    static float last_temp_offsetcelsius_0 = 999.9f;
+    if ((last_celsius != celsius) || (last_temp_offsetcelsius_0 != global_temp_offsetcelsius_0))
     {
       last_celsius = celsius;
+      last_temp_offsetcelsius_0 = global_temp_offsetcelsius_0;
 
-      Tm1621.showTemp(last_celsius);
+      Tm1621.showTemp(last_celsius + last_temp_offsetcelsius_0);
     }
 
     /* Limit loop to 5 Hz */
@@ -587,10 +590,19 @@ void contactBackend()
         else
         {
           Serial.println("deserializeJson success");
-          if (doc["error"])
+          // Extract all keys of interest (returns Null-Object, Null or 0 if not found)
+          uint8_t error = doc["error"];
+          const char *error_text = doc["error_text"];
+          uint8_t warning = doc["warning"];
+          const char *warning_text = doc["warning_text"];
+          uint32_t next_request_ms = doc["next_request_ms"];
+          bool epower_0_state = doc["epower_0_state"];
+          bool epower_1_state = doc["epower_1_state"];
+          float s_number_temp_offsetcelsius_0 = doc["s_number_temp_offsetcelsius_0"];
+
+          if (error)
           {
             // an error is critical, do not proceed with logik
-            const char *error_text = doc["error_text"];
             global_error_text = String(error_text);
             global_error = 1;
             ac1.setControlValue(false);
@@ -599,10 +611,9 @@ void contactBackend()
           else
           {
             global_error = 0;
-            if (doc["warning"])
+            if (warning)
             {
               // proceed with logik, if there is a warning
-              const char *warning_text = doc["warning_text"];
               global_warning_text = String(warning_text);
               global_warning = 1;
               ac1.setControlValue(false);
@@ -614,9 +625,9 @@ void contactBackend()
             }
 
             // main logic here
-            if (doc.containsKey("next_request_ms"))
+            if (next_request_ms)
             {
-              main_interval_ms = doc["next_request_ms"].as<long>();
+              main_interval_ms = next_request_ms;
             }
             else
             {
@@ -624,23 +635,11 @@ void contactBackend()
               main_interval_ms = 30000;
             }
             // AC relais
-            if (doc.containsKey("epower_0_state"))
-            {
-              ac1.setControlValue(doc["epower_0_state"]);
-            }
-            else
-            {
-              ac1.setControlValue(false);
-            }
+            ac1.setControlValue(epower_0_state);
             // Dry Contact relais
-            if (doc.containsKey("epower_1_state"))
-            {
-              drsw.setControlValue(doc["epower_1_state"]);
-            }
-            else
-            {
-              drsw.setControlValue(false);
-            }
+            drsw.setControlValue(epower_1_state);
+            // Temperature offset from UI
+            global_temp_offsetcelsius_0 = s_number_temp_offsetcelsius_0;
           }
         }
       }
