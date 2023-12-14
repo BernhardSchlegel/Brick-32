@@ -96,7 +96,7 @@ String global_error_text = "";
 String global_warning_text = "";
 String chipid = "";
 String ssid = "";
-String global_version = "0.9.0";
+String global_version = "1.0.0";
 uint32_t main_interval_ms = 1000; // 1s default intervall for first iteration
 String sensor_id = "";
 float celsius, fahrenheit;
