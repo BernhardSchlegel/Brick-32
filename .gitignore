@@ -3,3 +3,12 @@
 .vscode/c_cpp_properties.json
 .vscode/launch.json
 .vscode/ipch
+brick32_release/0x1000_sonoff_th_elite_bootloader_dio_40m.bin
+brick32_release/0x1000_sonoff_th_origin_bootloader_dio_40m.bin
+brick32_release/0x8000_sonoff_th_elite_partitions.bin
+brick32_release/0x8000_sonoff_th_origin_partitions.bin
+brick32_release/0x10000_sonoff_th_elite_firmware.bin
+brick32_release/0x10000_sonoff_th_origin_firmware.bin
+brick32_release/0xe000_sonoff_th_elite_boot_app0.bin
+brick32_release/0xe000_sonoff_th_origin_boot_app0.bin
+brick32_release/FLASH.MD

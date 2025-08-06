@@ -17,6 +17,7 @@
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 #include "Tm1621Drv.h"
+#include "wts01.h"
 
 // Sonoff TH Elite LCD display driver
 #define GPIO_TM1621_DAT 5
@@ -43,9 +44,12 @@ OneWire oneWire(GPIO_ONE_WIRE_BUS);
 
 // Pass our oneWire reference to Dallas Temperature.
 DallasTemperature sensors(&oneWire);
-
 // arrays to hold device address
 DeviceAddress insideThermometer;
+
+WTS01Sensor wts01sensor = WTS01Sensor();
+bool ds18b20_mode = false; // true, if DS18B20 were found
+
 
 TaskHandle_t Task1Hnd, Task2Hnd;
 
@@ -96,7 +100,7 @@ String global_error_text = "";
 String global_warning_text = "";
 String chipid = "";
 String ssid = "";
-String global_version = "1.0.0";
+String global_version = "1.1.0";
 uint32_t main_interval_ms = 1000; // 1s default intervall for first iteration
 String sensor_id = "";
 float celsius, fahrenheit;
@@ -106,6 +110,12 @@ float global_temp_offsetcelsius_0; // sensor offset from the UI. For display pur
 // button is polled on CPU1, wm manager is on CPU0
 bool show_config_portal_due = false;
 bool reset_config_due = false;
+
+void disableOneWire()
+{
+  // Move OneWire to an unused pin (like pin 255 which doesn't exist)
+  oneWire.begin(20); // This effectively disables it
+}
 
 void writeStringToEEPROM(int addrOffset, const String &strToWrite)
 {
@@ -487,17 +497,40 @@ void setup()
   Serial.print(sensors.getDeviceCount(), DEC);
   Serial.println(" devices.");
 
-  // show the addresses we found on the bus
-  Serial.print("Device 0 Address: ");
-  printAddress(insideThermometer);
+  int ds18b20found = sensors.getDeviceCount();
+  if (ds18b20found > 0)
+  {
+    // show the addresses we found on the bus
+    Serial.print("Device 0 Address: ");
+    printAddress(insideThermometer);
 
-  char buff[15] = ""; //3ffc3664
-  sprintf(buff, "0x0000%x", insideThermometer);
-  sensor_id = String(buff);
+    char buff[15] = ""; // 3ffc3664
+    sprintf(buff, "0x0000%x", insideThermometer);
+    sensor_id = String(buff);
 
-  // set the resolution to 11 bit (Each Dallas/Maxim device is capable of several different resolutions)
-  // 0.5, 0.25, 0.125, and 0.0625 degC for 9- , 10-, 11-, and 12-bit
-  sensors.setResolution(insideThermometer, 11);
+    // set the resolution to 11 bit (Each Dallas/Maxim device is capable of several different resolutions)
+    // 0.5, 0.25, 0.125, and 0.0625 degC for 9- , 10-, 11-, and 12-bit
+    sensors.setResolution(insideThermometer, 11);
+    ds18b20_mode = true;
+  } else {
+    Serial.println("No DS18B20 sensors found - looking for wts01 sensors...");
+    disableOneWire();
+
+    // For ESP32, try specific pins (adjust based on your wiring)
+    // Common ESP32 pins: RX=16, TX=17 or RX=GPIO16, TX=GPIO17
+    
+    //wts01sensor.begin(GPIO_ONE_WIRE_BUS, GPIO_ONE_WIRE_BUS + 1); // RX, TX
+
+    Serial2.begin(9600); // wts01sensor.begin();
+    if (Serial2.available())
+    {
+      Serial.println("DATA RECEIVED!");
+      Serial.print("0x");
+      Serial.println(Serial2.read(), HEX);
+    }
+
+    Serial.println("Waiting for WTS01 data...");
+  }
 }
 
 // function to print the temperature for a device
@@ -672,11 +705,58 @@ void loop()
     SetNextTimeInterval(pollTemperature_interval, 2000);
 
     Serial.println("##### MAIN: reading temperature");
-    sensors.requestTemperatures(); // Send the command to get temperatures
-    celsius = sensors.getTempC(insideThermometer);
-    if (celsius == DEVICE_DISCONNECTED_C)
+    Serial.print("DS18B20 mode: ");
+    Serial.println(ds18b20_mode);
+    if (ds18b20_mode)
     {
-      Serial.println("Error: Could not read temperature data");
+      sensors.requestTemperatures(); // Send the command to get temperatures
+      celsius = sensors.getTempC(insideThermometer);
+      if (celsius == DEVICE_DISCONNECTED_C)
+      {
+        Serial.println("Error: Could not read temperature data");
+      }
+    } else {
+
+      while (Serial2.available())
+      {
+        uint8_t byte = Serial2.read();
+        Serial.print("Raw byte: 0x");
+        Serial.print(byte, HEX);
+        Serial.print(" (");
+        Serial.print(byte, DEC);
+        Serial.println(")");
+      }
+
+      // Update sensor
+      wts01sensor.update();
+
+      // Check for temperature data
+      if (wts01sensor.has_new_data())
+      {
+        celsius = wts01sensor.get_temperature();
+        Serial.print(">>> Temperature: ");
+        Serial.print(celsius, 2);
+        Serial.println("°C");
+        wts01sensor.clear_new_data_flag();
+      }
+
+      /*
+      // wts01 mode
+
+      // Update sensor (processes incoming UART data)
+      wts01sensor.update();
+
+      // Check if new temperature data is available
+      if (wts01sensor.has_new_data())
+      {
+        float celsius = wts01sensor.get_temperature();
+        Serial.print("Temperature: ");
+        Serial.print(celsius, 2);
+        Serial.println("°C");
+
+        // Clear the new data flag
+        wts01sensor.clear_new_data_flag();
+      }*/
     }
   }
 
