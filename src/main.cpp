@@ -114,7 +114,7 @@ bool reset_config_due = false;
 void disableOneWire()
 {
   // Move OneWire to an unused pin (like pin 255 which doesn't exist)
-  oneWire.begin(20); // This effectively disables it
+  oneWire.begin(99); // This effectively disables it
 }
 
 void writeStringToEEPROM(int addrOffset, const String &strToWrite)
@@ -518,16 +518,17 @@ void setup()
 
     // For ESP32, try specific pins (adjust based on your wiring)
     // Common ESP32 pins: RX=16, TX=17 or RX=GPIO16, TX=GPIO17
-    
-    //wts01sensor.begin(GPIO_ONE_WIRE_BUS, GPIO_ONE_WIRE_BUS + 1); // RX, TX
 
-    Serial2.begin(9600); // wts01sensor.begin();
+    wts01sensor.begin(GPIO_ONE_WIRE_BUS, GPIO_ONE_WIRE_BUS + 1); // RX, TX
+
+    /*
+    Serial2.begin(9600, SERIAL_8N1, GPIO_ONE_WIRE_BUS, GPIO_ONE_WIRE_BUS+1);
     if (Serial2.available())
     {
       Serial.println("DATA RECEIVED!");
       Serial.print("0x");
       Serial.println(Serial2.read(), HEX);
-    }
+    }*/
 
     Serial.println("Waiting for WTS01 data...");
   }
@@ -705,8 +706,6 @@ void loop()
     SetNextTimeInterval(pollTemperature_interval, 2000);
 
     Serial.println("##### MAIN: reading temperature");
-    Serial.print("DS18B20 mode: ");
-    Serial.println(ds18b20_mode);
     if (ds18b20_mode)
     {
       sensors.requestTemperatures(); // Send the command to get temperatures
@@ -716,17 +715,6 @@ void loop()
         Serial.println("Error: Could not read temperature data");
       }
     } else {
-
-      while (Serial2.available())
-      {
-        uint8_t byte = Serial2.read();
-        Serial.print("Raw byte: 0x");
-        Serial.print(byte, HEX);
-        Serial.print(" (");
-        Serial.print(byte, DEC);
-        Serial.println(")");
-      }
-
       // Update sensor
       wts01sensor.update();
 
@@ -734,29 +722,8 @@ void loop()
       if (wts01sensor.has_new_data())
       {
         celsius = wts01sensor.get_temperature();
-        Serial.print(">>> Temperature: ");
-        Serial.print(celsius, 2);
-        Serial.println("°C");
         wts01sensor.clear_new_data_flag();
       }
-
-      /*
-      // wts01 mode
-
-      // Update sensor (processes incoming UART data)
-      wts01sensor.update();
-
-      // Check if new temperature data is available
-      if (wts01sensor.has_new_data())
-      {
-        float celsius = wts01sensor.get_temperature();
-        Serial.print("Temperature: ");
-        Serial.print(celsius, 2);
-        Serial.println("°C");
-
-        // Clear the new data flag
-        wts01sensor.clear_new_data_flag();
-      }*/
     }
   }
 

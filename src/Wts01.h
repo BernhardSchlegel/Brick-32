@@ -6,7 +6,7 @@ class WTS01Sensor
 {
 public:
     WTS01Sensor();
-    void begin();
+    void begin(uint8_t rx_pin, uint8_t tx_pin);
     void update();
     float get_temperature() const { return this->current_temperature_; }
     bool has_new_data() const { return this->new_data_available_; }

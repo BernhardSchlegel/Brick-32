@@ -5,9 +5,9 @@ WTS01Sensor::WTS01Sensor()
 {
 }
 
-void WTS01Sensor::begin()
+void WTS01Sensor::begin(uint8_t rx_pin, uint8_t tx_pin)
 {
-    Serial2.begin(9600);
+    Serial2.begin(9600, SERIAL_8N1, rx_pin, tx_pin);
 }
 
 void WTS01Sensor::update()
@@ -16,11 +16,13 @@ void WTS01Sensor::update()
     {
         uint8_t byte = Serial2.read();
         handle_char_(byte);
-        Serial.print("Raw byte: 0x");
-        Serial.print(byte, HEX);
-        Serial.print(" (");
-        Serial.print(byte, DEC);
-        Serial.println(")");
+        
+        // DEBUG OUTPUT
+        // Serial.print("Raw byte: 0x");
+        // Serial.print(byte, HEX);
+        // Serial.print(" (");
+        // Serial.print(byte, DEC);
+        // Serial.println(")");
     }
 }
 
@@ -90,8 +92,8 @@ void WTS01Sensor::process_packet_()
 
     // Extract temperature value
 
-    uint8_t temp = buffer_[5];         // Temperature integer part (0x11 = 17), was [6]
-    uint8_t temp_decimal = buffer_[6]; // Temperature decimal part (0x16 = 22), was [7]
+    uint8_t temp = buffer_[6];         // Temperature integer part (0x11 = 22)
+    uint8_t temp_decimal = buffer_[7]; // Temperature decimal part (0x16 = 5)
     int8_t sign = 1;
 
     // Handle negative temperatures
