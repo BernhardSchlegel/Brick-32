@@ -21,6 +21,15 @@ To make a new image:
 1. Verify that the above adresses are still valid.
 1. Run `create_release.sh` i.e. `./create_release.sh /home/bernhard/.platformio` (don't forget to `chmod +x create_release.sh` before first run)
 
+## Use the .cmd file
+
+On Windows
+
+```
+create_release.cmd "C:\Users\Bernhard\.platformio" "sonoff_th_origin"
+create_release.cmd "C:\Users\Bernhard\.platformio" "sonoff_th_elite"
+
+```
 
 ## FAQs
 
