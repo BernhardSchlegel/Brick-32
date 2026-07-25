@@ -20,6 +20,13 @@ and TX are crossed):
 | `TX0`  | `RXD`                 |
 | `RX0`  | `TXD`                 |
 
+Make sure the `3V3` dupont connector really sits tight on the header pin. A
+loose contact still powers the chip well enough to connect, but the current
+drawn while erasing and writing the flash makes the voltage drop, the ESP32
+reboots and the upload aborts in the middle - see the troubleshooting section
+below. If in doubt, pull the connector off, turn it by 90 degrees and push it
+back on.
+
 Then:
 
 1. Unplug the USB cable of the USB-to-serial adapter.
@@ -45,7 +52,15 @@ pio run -e sonoff_th_origin -t upload --upload-port /dev/cu.usbserial-0001  # ma
 A successful run ends with `Hash of data verified.` and `Hard resetting via RTS
 pin...`. Use `pio device monitor -e sonoff_th_origin` to watch the serial log.
 
-If the upload fails with `Wrong boot mode detected (0x13)` or `No serial data
-received`, the Sonoff is not in download mode - repeat the four steps above.
-Note that opening the serial port resets the chip, so put it into download mode
-directly before the upload and do not run a serial monitor in between.
+## Troubleshooting
+
+`Wrong boot mode detected (0x13)` or `No serial data received` while connecting:
+the Sonoff is not in download mode - repeat the four steps above. Note that
+opening the serial port resets the chip, so put it into download mode directly
+before the upload and do not run a serial monitor in between.
+
+`The chip stopped responding` or `Invalid head of packet (0x65)` in the middle
+of writing the firmware: the ESP32 rebooted during the upload because its supply
+voltage broke down. Check the `3V3` and `GND` connections first, they are the
+usual cause. Lowering `upload_speed` to `115200` in `platformio.ini` does not
+help against this - a bad contact stays a bad contact.
