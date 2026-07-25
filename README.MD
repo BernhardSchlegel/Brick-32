@@ -68,6 +68,8 @@ A detailled build guide can be found on [YouTube](https://www.youtube.com/watch?
 
 Simply power up your BierBot Brick-32 and use any WiFi enabled device (Android, iPhone, Tablet, Mac, or PC) to scan for a Brick-32-Wifi (i.e. `Brick-32-0042123`) to configure your Brick. You'll need an API key which you can get for free at [bricks.bierbot.com](https://bricks.bierbot.com).
 
+The configuration portal uses BierBot Bricks as its backend by default. Select `Custom` to use another backend and enter its complete API endpoint, for example `https://example.com/api/iot/v1`. Both HTTP and HTTPS endpoints are supported.
+
 ### Buttons and LEDs
 
 The following Buttons are available

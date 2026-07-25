@@ -68,7 +68,12 @@ enum MAIN_STATE
 };
 
 #define EEPROM_ADDRESS_APIKEY 0
+#define APIKEY_MAX_LENGTH 20
+#define EEPROM_ADDRESS_BACKEND_URL 32
+#define BACKEND_URL_MAX_LENGTH 180
 #define HTTP_REQUEST_RESPONSE_BUF_LEN 512
+
+const char *DEFAULT_BACKEND_URL = "https://bricks.bierbot.com/api/iot/v1";
 
 Button2 btn_main;
 
@@ -90,6 +95,8 @@ auto drsw = GenericOut(0, false); // Init with 0 -> "not present"
 String apikey;
 WiFiManager wm;                           // global wm instance
 WiFiManagerParameter custom_field_apikey; // global param ( for non blocking w params )
+WiFiManagerParameter custom_field_backend;
+String backend_config_html;
 HTTPClient http;                          // Declare an object of class HTTPClient
 WiFiClientSecure https;
 
@@ -140,9 +147,14 @@ void writeStringToEEPROM(int addrOffset, const String &strToWrite)
   Serial.println("EEPROM committed.");
 }
 
-String readStringFromEEPROM(int addrOffset)
+String readStringFromEEPROM(int addrOffset, int maxLength)
 {
   int newStrLen = EEPROM.read(addrOffset);
+  if (newStrLen <= 0 || newStrLen > maxLength || addrOffset + newStrLen >= 512)
+  {
+    return "";
+  }
+
   char data[newStrLen + 1];
   for (int i = 0; i < newStrLen; i++)
   {
@@ -152,9 +164,80 @@ String readStringFromEEPROM(int addrOffset)
   return String(data);
 }
 
+String escapeHtmlAttribute(String value)
+{
+  value.replace("&", "&amp;");
+  value.replace("\"", "&quot;");
+  value.replace("'", "&#39;");
+  value.replace("<", "&lt;");
+  value.replace(">", "&gt;");
+  return value;
+}
+
+bool isValidBackendUrl(const String &url)
+{
+  return url.startsWith("http://") || url.startsWith("https://");
+}
+
+String getConfiguredBackendUrl()
+{
+  String configured_url = readStringFromEEPROM(
+    EEPROM_ADDRESS_BACKEND_URL,
+    BACKEND_URL_MAX_LENGTH
+  );
+  configured_url.trim();
+  return isValidBackendUrl(configured_url)
+    ? configured_url
+    : String(DEFAULT_BACKEND_URL);
+}
+
+String createBackendConfigHtml(const String &configured_url)
+{
+  bool custom_backend = isValidBackendUrl(configured_url);
+  String html =
+    "<label for='backend_mode'>Backend</label>"
+    "<select id='backend_mode' name='backend_mode' onchange='toggleBackendUrl()'>"
+    "<option value='bierbot'";
+  if (!custom_backend)
+  {
+    html += " selected";
+  }
+  html += ">BierBot Bricks</option><option value='custom'";
+  if (custom_backend)
+  {
+    html += " selected";
+  }
+  html +=
+    ">Custom</option></select>"
+    "<div id='backend_url_wrap' style='display:";
+  html += custom_backend ? "block" : "none";
+  html +=
+    "'><label for='backend_url'>Custom Backend URL</label>"
+    "<input id='backend_url' name='backend_url' type='url' maxlength='";
+  html += String(BACKEND_URL_MAX_LENGTH);
+  html +=
+    "' placeholder='https://example.com/api/iot/v1' value='";
+  html += escapeHtmlAttribute(configured_url);
+  html +=
+    "'></div>"
+    "<script>"
+    "function toggleBackendUrl(){"
+    "var custom=document.getElementById('backend_mode').value==='custom';"
+    "var wrap=document.getElementById('backend_url_wrap');"
+    "var input=document.getElementById('backend_url');"
+    "wrap.style.display=custom?'block':'none';"
+    "input.required=custom;"
+    "}"
+    "document.addEventListener('DOMContentLoaded',toggleBackendUrl);"
+    "</script>";
+  return html;
+}
+
 void resetConfig()
 {
   Serial.println("Erasing Config, restarting");
+  writeStringToEEPROM(EEPROM_ADDRESS_APIKEY, "");
+  writeStringToEEPROM(EEPROM_ADDRESS_BACKEND_URL, "");
   wm.resetSettings();
   ESP.restart();
 }
@@ -339,12 +422,24 @@ String getParam(String name)
 void saveParamCallback()
 {
   Serial.println("[CALLBACK] saveParamCallback fired");
-  apikey = getParam("apikey").substring(0, 20);
-  Serial.println("PARAM apikey straight = " + apikey);
-  // String apikey = getParam("apikey");
+  apikey = getParam("apikey").substring(0, APIKEY_MAX_LENGTH);
   writeStringToEEPROM(EEPROM_ADDRESS_APIKEY, apikey);
-  String apikey_restored = readStringFromEEPROM(EEPROM_ADDRESS_APIKEY);
-  Serial.println("PARAM apikey from EEPROM = " + apikey_restored);
+
+  String backend_url = getParam("backend_url").substring(
+    0,
+    BACKEND_URL_MAX_LENGTH
+  );
+  backend_url.trim();
+  if (getParam("backend_mode") != "custom" || !isValidBackendUrl(backend_url))
+  {
+    backend_url = "";
+  }
+  writeStringToEEPROM(EEPROM_ADDRESS_BACKEND_URL, backend_url);
+
+  Serial.println(
+    "Backend configured: " +
+    (backend_url.length() > 0 ? backend_url : String(DEFAULT_BACKEND_URL))
+  );
 }
 
 String getFlashChipId()
@@ -460,8 +555,25 @@ void setup()
   // wifi manager
   Serial.println("initializing WiFi..");
   led_wifi.Blink(200,200).Forever();
-  new (&custom_field_apikey) WiFiManagerParameter("apikey", "Bricks API Key", "", 37, "placeholder=\"get your API key at bricks.bierbot.com\"");
+  String stored_apikey = readStringFromEEPROM(
+    EEPROM_ADDRESS_APIKEY,
+    APIKEY_MAX_LENGTH
+  );
+  String stored_backend_url = readStringFromEEPROM(
+    EEPROM_ADDRESS_BACKEND_URL,
+    BACKEND_URL_MAX_LENGTH
+  );
+  new (&custom_field_apikey) WiFiManagerParameter(
+    "apikey",
+    "Bricks API Key",
+    stored_apikey.c_str(),
+    37,
+    "placeholder=\"get your API key at bricks.bierbot.com\""
+  );
   wm.addParameter(&custom_field_apikey);
+  backend_config_html = createBackendConfigHtml(stored_backend_url);
+  new (&custom_field_backend) WiFiManagerParameter(backend_config_html.c_str());
+  wm.addParameter(&custom_field_backend);
   // wm.setConfigPortalBlocking(false);
   wm.setSaveConfigCallback(saveParamCallback);
   bool res;
@@ -547,11 +659,16 @@ void contactBackend()
 {
   if (1 == 1)
   { // WiFi.status() == WL_CONNECTED) { //Check WiFi connection status
-    String apikey = readStringFromEEPROM(EEPROM_ADDRESS_APIKEY);
+    String apikey = readStringFromEEPROM(
+      EEPROM_ADDRESS_APIKEY,
+      APIKEY_MAX_LENGTH
+    );
     String s_number_temp_0 = String(celsius);
     String a_bool_epower_0 = String((int)ac1.getCurrentValue());
     String a_bool_epower_1 = String((int)drsw.getCurrentValue());
-    String url ="https://bricks.bierbot.com/api/iot/v1?apikey=" + apikey + "&brand=" + "bierbot" + "&version=" + global_version + "&s_number_temp_0=" + s_number_temp_0 + "&chipid=" + chipid + "&s_number_temp_id_0=" + sensor_id;
+    String url = getConfiguredBackendUrl();
+    url += url.indexOf('?') >= 0 ? "&" : "?";
+    url += "apikey=" + apikey + "&brand=" + "bierbot" + "&version=" + global_version + "&s_number_temp_0=" + s_number_temp_0 + "&chipid=" + chipid + "&s_number_temp_id_0=" + sensor_id;
     if (drsw.isValid()) { // TH Elite series
       url += "&type=sonoff_th_elite&a_bool_epower_0=" + a_bool_epower_0 + "&a_bool_epower_1=" + a_bool_epower_1;
     }
@@ -563,13 +680,17 @@ void contactBackend()
     Serial.print(", a_bool_epower_0=" + a_bool_epower_0);
     Serial.println(", a_bool_epower_1=" + a_bool_epower_1);
 
-    WiFiClientSecure client;
-    client.setInsecure(); // unfortunately necessary, ESP8266 does not support SSL without hard coding certificates
-    char cchar_url[url.length() + 1];
-    url.toCharArray(cchar_url, url.length() + 1); // Converts String into character array
-    client.connect(cchar_url, 443);
-
-    http.begin(client, url);
+    WiFiClient client;
+    WiFiClientSecure secure_client;
+    if (url.startsWith("https://"))
+    {
+      secure_client.setInsecure(); // certificates cannot be hard coded for custom backends
+      http.begin(secure_client, url);
+    }
+    else
+    {
+      http.begin(client, url);
+    }
 
     Serial.println("submitting GET to " + url);
     int httpCode = http.GET(); // GET has issues with 301 forwards
