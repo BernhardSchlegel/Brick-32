@@ -17,7 +17,7 @@
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 #include "Tm1621Drv.h"
-#include "wts01.h"
+#include "Wts01.h"
 
 // Sonoff TH Elite LCD display driver
 #define GPIO_TM1621_DAT 5
@@ -98,9 +98,20 @@ uint8_t global_error = 0;
 uint8_t global_warning = 0;
 String global_error_text = "";
 String global_warning_text = "";
+
+// auto-reboot on connection trouble:
+// after a healthy stretch (10+ consecutive successful requests) the device
+// arms a watchdog; from then on 3 consecutive connection failures trigger a
+// reboot. Fresh boots start unarmed, so a dead server or dead WiFi cannot
+// cause a reboot loop.
+#define AUTO_REBOOT_HEALTHY_STREAK 10
+#define AUTO_REBOOT_FAILURE_STREAK 3
+uint8_t consecutive_successes = 0;
+bool reboot_armed = false;
+uint8_t consecutive_failures = 0;
 String chipid = "";
 String ssid = "";
-String global_version = "1.1.0";
+String global_version = "1.2.0";
 uint32_t main_interval_ms = 1000; // 1s default intervall for first iteration
 String sensor_id = "";
 float celsius, fahrenheit;
@@ -545,6 +556,7 @@ void printTemperature()
 
 void contactBackend()
 {
+  bool connection_failed = false;
   if (1 == 1)
   { // WiFi.status() == WL_CONNECTED) { //Check WiFi connection status
     String apikey = readStringFromEEPROM(EEPROM_ADDRESS_APIKEY);
@@ -575,6 +587,13 @@ void contactBackend()
     int httpCode = http.GET(); // GET has issues with 301 forwards
     Serial.print("httpCode: ");
     Serial.println(httpCode);
+
+    if (httpCode < 0)
+    {
+      // request did not complete (connect/TLS failure, timeout, reset, etc.) - count as failed request
+      Serial.println(F("request failed."));
+      connection_failed = true;
+    }
 
     if (httpCode > 0)
     { // Check the returning code
@@ -684,6 +703,34 @@ void contactBackend()
       main_interval_ms = 60000;
       ac1.setControlValue(false);
       drsw.setControlValue(false);
+    }
+
+    if (connection_failed)
+    {
+      // request did not complete - count towards auto-reboot
+      consecutive_successes = 0;
+      consecutive_failures++;
+      if (reboot_armed && consecutive_failures >= AUTO_REBOOT_FAILURE_STREAK)
+      {
+        Serial.println(F("auto-reboot: 3 consecutive failed requests after a healthy streak, restarting."));
+        ESP.restart();
+      }
+      else
+      {
+        Serial.print(F("consecutive failed requests: "));
+        Serial.println(consecutive_failures);
+      }
+    }
+    else
+    {
+      // successful request - reset failure streak, arm reboot after a healthy streak
+      consecutive_failures = 0;
+      consecutive_successes++;
+      if (!reboot_armed && consecutive_successes >= AUTO_REBOOT_HEALTHY_STREAK)
+      {
+        reboot_armed = true;
+        Serial.println("auto-reboot armed after " + String(AUTO_REBOOT_HEALTHY_STREAK) + " consecutive successful requests.");
+      }
     }
     http.end(); // Close connection
   }
