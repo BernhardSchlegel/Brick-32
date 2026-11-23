@@ -1,4 +1,4 @@
-#include "wts01.h"
+#include "Wts01.h"
 
 WTS01Sensor::WTS01Sensor()
     : buffer_pos_(0), current_temperature_(NAN), new_data_available_(false)
