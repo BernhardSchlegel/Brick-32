@@ -111,7 +111,7 @@ bool reboot_armed = false;
 uint8_t consecutive_failures = 0;
 String chipid = "";
 String ssid = "";
-String global_version = "1.1.0";
+String global_version = "1.2.0";
 uint32_t main_interval_ms = 1000; // 1s default intervall for first iteration
 String sensor_id = "";
 float celsius, fahrenheit;
